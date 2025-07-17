@@ -9,6 +9,7 @@ from telegram.ext import (
     filters
 )
 from weather import get_tennis_windows
+from range import find_tennis_courts_nearby
 from flask import Flask
 from threading import Thread
 
@@ -50,11 +51,27 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def handle_location(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lat = update.message.location.latitude
     lon = update.message.location.longitude
-    result = get_tennis_windows(lat, lon)
-    await update.message.reply_text(result)
+
+    await update.message.reply_text("🔍 Searching for tennis courts and weather info...")
+
+    try:
+        result = get_tennis_windows(lat, lon)
+        await update.message.reply_text(result)
+    except Exception as e:
+        await update.message.reply_text(f"❌ Error getting weather data: {str(e)}")
+
+    try:
+        courts = find_tennis_courts_nearby(lat, lon)
+        await update.message.reply_text(courts)
+    except Exception as e:
+        await update.message.reply_text(f"❌ Error finding courts: {str(e)}")
 
 
 def main():
+    if not TELEGRAM_TOKEN:
+        print("❌ TELEGRAM_TOKEN not found in .env file!")
+        return
+
     web_thread = Thread(target=run_web_server)
     web_thread.daemon = True
     web_thread.start()
